@@ -1,17 +1,39 @@
-import { useState } from "react";
 import ProductList from "./features/products/components/ProductList";
-import type { Product } from "./features/products/types/product";
+
 import CartItemsList from "./features/products/components/CartItemsList";
+import useCart from "./features/cart/hooks/useCart";
 
 function App() {
-  const [cartItems, setCartItems] = useState<Product[]>([]);
-  function handleAddToCart(product: Product) {
-    setCartItems((prevCartItems) => [...prevCartItems, product]);
-  }
+  const {
+    cartItems,
+    handleAddToCart,
+    handleIncreaseQuantity,
+    handleDecreaseQuantity,
+    handleRemoveFromCart,
+    handleClearCart,
+    total,
+    cartItemCount,
+  } = useCart();
+
   return (
     <div>
       <ProductList handleAddToCart={handleAddToCart} />
-      <CartItemsList cartItems={cartItems} />
+      {cartItems.length === 0 ? (
+        <h3>Add Some Items To Get Started</h3>
+      ) : (
+        <>
+          <CartItemsList
+            cartItems={cartItems}
+            handleIncreaseQuantity={handleIncreaseQuantity}
+            handleDecreaseQuantity={handleDecreaseQuantity}
+            handleRemoveFromCart={handleRemoveFromCart}
+            handleClearCart={handleClearCart}
+          />
+
+          <h3>Total: ₹{total.toLocaleString("en-IN")}</h3>
+          <h3>Cart ({cartItemCount})</h3>
+        </>
+      )}
     </div>
   );
 }
