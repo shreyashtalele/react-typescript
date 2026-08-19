@@ -1,7 +1,7 @@
-import { products } from "../data/products";
 import ProductCard from "./ProductCard";
 import type { Product } from "../types/product";
 import { useState, useEffect } from "react";
+import type { ProductsResponse } from "../types/ProductResponse";
 
 type ProductListProps = {
   handleAddToCart: (product: Product) => void;
@@ -15,14 +15,33 @@ function ProductList({ handleAddToCart }: ProductListProps) {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
 
-  useEffect(() => {
-    async function fetchProducts() {
+  async function fetchProducts() {
+    try {
       const response = await fetch("https://dummyjson.com/products");
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+      const data = (await response.json()) as ProductsResponse;
 
-      setProducts(data.products);
+      const products: Product[] = data.products.map((product) => ({
+        id: product.id,
+        name: product.title,
+        price: product.price,
+      }));
+
+      setProducts(products);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Something went wrong");
+      }
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     fetchProducts();
   }, []);
 
@@ -48,7 +67,11 @@ function ProductList({ handleAddToCart }: ProductListProps) {
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder="Search Product"
       ></input>
-      {filteredProducts.length === 0 ? (
+      {loading ? (
+        <p>Products are loading</p>
+      ) : error ? (
+        <p>Something went Wrong {error}</p>
+      ) : filteredProducts.length === 0 ? (
         <p>No Product Found</p>
       ) : (
         filteredProducts.map((product) => (
@@ -59,7 +82,6 @@ function ProductList({ handleAddToCart }: ProductListProps) {
           />
         ))
       )}
-      {}
     </div>
   );
 }
