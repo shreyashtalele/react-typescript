@@ -1,7 +1,7 @@
 import ProductCard from "./ProductCard";
 import type { Product } from "../types/product";
-import { useState, useEffect } from "react";
-import type { ProductsResponse } from "../types/ProductResponse";
+import { useState, useEffect, useRef } from "react";
+import type { ProductsResponse } from "../types/productResponse";
 
 type ProductListProps = {
   handleAddToCart: (product: Product) => void;
@@ -12,37 +12,73 @@ function ProductList({ handleAddToCart }: ProductListProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
 
+  function delay(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
   async function fetchProducts() {
+    let retryCount = 0;
+    setLoading(true);
+    setError(null);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const response = await fetch("https://dummyjson.com/products");
-      if (!response.ok) {
-        throw new Error("Failed to fetch products");
-      }
-      const data = (await response.json()) as ProductsResponse;
+      while (retryCount < 4) {
+        try {
+          const response = await fetch("https://dummyjson.com/products", {
+            signal: controller.signal,
+          });
+          if (!response.ok) {
+            throw new Error("Failed to fetch products");
+          }
+          const data = (await response.json()) as ProductsResponse;
 
-      const products: Product[] = data.products.map((product) => ({
-        id: product.id,
-        name: product.title,
-        price: product.price,
-      }));
+          const products: Product[] = data.products.map((product) => ({
+            id: product.id,
+            name: product.title,
+            price: product.price,
+          }));
 
-      setProducts(products);
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("Something went wrong");
+          setProducts(products);
+          return;
+        } catch (error) {
+          if (error instanceof Error && error.name === "AbortError") {
+            return;
+          } else if (retryCount < 3) {
+            const delayTime = 1000 * 2 ** retryCount;
+            retryCount++;
+            await delay(delayTime);
+          } else if (error instanceof Error) {
+            setError(error.message);
+            return;
+          } else {
+            setError("Something went wrong");
+            return;
+          }
+        }
       }
     } finally {
-      setLoading(false);
+      if (controller === abortControllerRef.current) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
     fetchProducts();
+
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -70,7 +106,10 @@ function ProductList({ handleAddToCart }: ProductListProps) {
       {loading ? (
         <p>Products are loading</p>
       ) : error ? (
-        <p>Something went Wrong {error}</p>
+        <div>
+          <p>Something went Wrong {error}</p>
+          <button onClick={fetchProducts}>Retry</button>
+        </div>
       ) : filteredProducts.length === 0 ? (
         <p>No Product Found</p>
       ) : (
