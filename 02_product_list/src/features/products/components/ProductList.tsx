@@ -1,6 +1,6 @@
 import ProductCard from "./ProductCard";
 import type { Product } from "../types/product";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { ProductsResponse } from "../types/productResponse";
 
 type ProductListProps = {
@@ -91,10 +91,11 @@ function ProductList({ handleAddToCart }: ProductListProps) {
     };
   }, [searchTerm]);
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()),
-  );
-
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) =>
+      product.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()),
+    );
+  }, [debouncedSearchTerm, products]);
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       <input

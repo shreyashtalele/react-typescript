@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import type { CartItem } from "../../products/types/cart";
 import type { Product } from "../../products/types/product";
@@ -16,7 +16,8 @@ export default function useCart() {
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
   }, [cartItems]);
-  function handleAddToCart(product: Product) {
+
+  const handleAddToCart = useCallback((product: Product) => {
     setCartItems((prevCartItems) => {
       const existingItem = prevCartItems.find(
         (cartItem) => cartItem.product.id === product.id,
@@ -43,8 +44,7 @@ export default function useCart() {
         },
       ];
     });
-  }
-
+  }, []);
   function handleIncreaseQuantity(cartItem: CartItem) {
     setCartItems((prevCartItems) =>
       prevCartItems.map((item) => {

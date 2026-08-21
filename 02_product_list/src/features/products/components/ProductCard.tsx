@@ -1,4 +1,5 @@
 import type { Product } from "../types/product";
+import React from "react";
 
 type ProductCardProp = {
   product: Product;
@@ -6,6 +7,7 @@ type ProductCardProp = {
 };
 
 function ProductCard({ product, handleAddToCart }: ProductCardProp) {
+  console.log("ProductCard rendered", product.name);
   return (
     <div className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
       <div className="flex flex-col gap-2">
@@ -26,4 +28,4 @@ function ProductCard({ product, handleAddToCart }: ProductCardProp) {
   );
 }
 
-export default ProductCard;
+export default React.memo(ProductCard);
